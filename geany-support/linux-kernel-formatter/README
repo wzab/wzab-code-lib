@@ -1,0 +1,8 @@
+Files hotkeys.cfg and wzform.lua should be placed in: ~/.config/geany/plugins/geanylua/
+Of course in the configuration of settings, one must configure the appropriate hotkey:
+In my system, n ~/.config/geany/keybindings.conf, I have a section:
+
+[lua_scripts]
+lua_script_1=<Primary><Alt>f
+
+
