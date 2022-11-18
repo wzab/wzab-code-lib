@@ -1,0 +1,56 @@
+The sources in this directory have been published in alt.sources group:
+
+15 lut 2010, https://groups.google.com/g/alt.sources/c/jD825pvbj6Q/m/bNkQ3krKZfIJ
+15 cze 2019, https://groups.google.com/g/alt.sources/c/jD825pvbj6Q/m/HbEsXuGZAQAJ
+
+This is the updated version of my automated test generator and scanner.
+I have updated it to:
+1) Work with Python 3
+2) Use Python virtaul environment and automatically install necessary
+extensions
+3) Use pilibdmtx instead of old pydmtx
+
+The old (slightly updated) desctription follows:
+
+Checking of multiple choice test is always boring and (therefore?) error prone.
+I always wanted to make it automatically. There are different commercial
+programs able to make it automatically, but I wanted to have something
+open and free.
+The presented system uses the DataMatrix 2D bar codes to allow automatic
+scanning of the test answers.
+The idea is very simple.
+The test sheet contains the codes corresponding to each answer.
+The student checks (blurs) the code corresponding to the selected answer.
+The scanned test sheet is then analyzed and all remaining codes are detected.
+The lacking codes are those who have been selected.
+
+This archive contains two Python scripts:
+1) test_gen.py - this script generates in the "patterns" subdirectory
+   the PNG files which should be included in your test.
+   The LaTeX demo_test.tex file is an example how to do it.
+2) test_scan.py - this script analyses the filled and scanned test
+   The values " min_edge=80, max_edge=150 " are good for the
+   scan with 600 DPI. You should adjust them for 300DPI scan.
+The archive contains also the sample test "demo_test.tex"
+To check how does it all work, you should:
+a) Generate the PNG files with encoded answers:
+   $python test_gen.py
+b) Generate the test PDF: $pdflatex demo_test
+   Print it, fill it, scan it with 600DPI to "scanned_test.png" file
+c) Run the analyzer:
+   $python test_scan.py
+
+For correct operation you need the PIL library for Python
+(http://www.pythonware.com/products/pil/ )
+and the libdmtx library with Python wrapper
+(http://libdmtx.sf.net)
+
+Please note, that this software is provided as PUBLIC DOMAIN,
+without any warranty. You can use it only on your own risk.
+I don't warrant you that it won't destroy something in your system.
+I also don't know whether its use may infringe any patents
+in any country in the world.
+
+Wojciech M. Zabolotny
+wzab<at>ise.pw.edu.pl
+
