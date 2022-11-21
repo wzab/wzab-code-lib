@@ -1,0 +1,74 @@
+- quest: "The superposition theorem may be applied only:"
+  answ:
+  - "Y To the linear circuits"
+  - "N To the circuits containing only passive elements"
+  - "N To the DC circuits"
+  - "N To the AC circuits"
+  
+- quest: "The impedance of the capacitor:"
+  answ:
+  - "N does not depend on the frequency"
+  - "N is proportional to the frequency"
+  - "Y is inversely proportional to the frequency"
+  - "N is always infinite"
+  
+- quest: "The impedance of the inductance:"
+  answ:
+  - "N does not depend on the frequency"
+  - "Y is proportional to the frequency"
+  - "N is inversely proportional to the frequency"
+  - "N is always infinite"
+
+- quest: "The impedance of the resistance:"
+  answ:
+  - "Y does not depend on the frequency"
+  - "N is proportional to the frequency"
+  - "N is inversely proportional to the frequency"
+  - "N is always infinite"
+
+- quest: "Which of the below connections is {\\bf not} acceptable in the model of the circut:"
+  answ:
+  - "N parallel connection of two ideal current sources with different output currents"
+  - "N series connection of two ideal voltage sources with different output voltages"
+  - "N parallel connection of an ideal current source and an ideal voltage source"
+  - "Y series connection of two ideal current sources with different output currents"
+
+- quest: "Which from the listed amplifiers is {\\bf not} suitable to amplify the DC component of the input signal:"
+  answ:
+  - "N Differential amplifier"
+  - "Y Common emitter or common source amplifier"
+  - "N Noniverting amplifier with op-amp"
+  - "N Inverting amplifier with op-amp"
+
+- quest: The load current is meassured as the voltage drop across the small resistor
+    connected in series with the load. The accuracy of the metter is equal to 2\%, and 
+    the tolerance of the resistor is equal to 1.5\%. The accuracy of the measurement is 
+    equal to
+  answ:
+  - "N 3\\%"
+  - "N 2\\%"
+  - "Y 3.5\\%"
+  - "N 1.5\\%"
+
+- quest: "In order to measure the current in a circuit, an ammeter must:"
+  answ:
+  - "N be placed across the source"
+  - "N be placed across the load"
+  - "Y be inserted into the circuit so the current flows through it"
+  - "N all of these"
+
+- quest: "In the bipolar NPN transistor, $\\beta$=200A/A, $I_C$=1mA, $I_B$=10$\\mu$A:"
+  answ:
+  - "Y transistor works in saturation state"
+  - "N transistor works in active state"
+  - "N this is impossible"
+  - "N transistor works in cutoff state"
+
+- quest: "The real current source has internal resistance of 50$\\Omega$. When shorted, it
+  provides the current of 100mA. This source may be replaced with:"
+  answ: 
+  - "N an ideal voltage source E=5V connected in parallel with resistance R=50$\\Omega$"
+  - "Y an ideal voltage source E=5V connected in series with resistance R=50$\\Omega$"
+  - "N an ideal voltage source E=0.5V connected in parallel with resistance R=50$\\Omega$"
+  - "N an ideal voltage source E=0.5V connected in series with resistance R=50$\\Omega$"
+  
