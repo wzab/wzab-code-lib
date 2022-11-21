@@ -9,12 +9,14 @@
   answ:
   - "N does not depend on the frequency"
   - "Y is proportional to the frequency"
+  - "N is inversely proportional to the frequency"
   - "N is always infinite"
 
 - quest: "The impedance of the resistance:"
   answ:
   - "Y does not depend on the frequency"
   - "N is proportional to the frequency"
+  - "N is inversely proportional to the frequency"
   - "N is always infinite"
 
 - quest: "Which of the below connections is {\\bf not} acceptable in the model of the circut:"
@@ -37,7 +39,9 @@
     equal to
   answ:
   - "N 3\\%"
+  - "N 2\\%"
   - "Y 3.5\\%"
+  - "N 1.5\\%"
 
 - quest: "In order to measure the current in a circuit, an ammeter must:"
   answ:
@@ -58,5 +62,6 @@
   answ: 
   - "N an ideal voltage source E=5V connected in parallel with resistance R=50$\\Omega$"
   - "Y an ideal voltage source E=5V connected in series with resistance R=50$\\Omega$"
+  - "N an ideal voltage source E=0.5V connected in parallel with resistance R=50$\\Omega$"
   - "N an ideal voltage source E=0.5V connected in series with resistance R=50$\\Omega$"
   

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 python3 -m venv testgen
 source testgen/bin/activate
 pip3 install pylibdmtx
