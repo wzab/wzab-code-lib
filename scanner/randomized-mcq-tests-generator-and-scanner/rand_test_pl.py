@@ -49,6 +49,7 @@ header = """
 \\usepackage{wrapfig}
 \\usepackage[pdftex]{graphicx}
 \\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
 \\usepackage{pslatex}
 \\usepackage[a4paper,left=1cm, right=1cm, top=1cm, bottom=1cm]{geometry}
 \\setlength{\\parindent}{0pt}
@@ -58,13 +59,14 @@ header = """
 \\begin{wrapfigure}{r}{2.5cm}
 \\includegraphics[width=\linewidth]{qkey.png}
 \\end{wrapfigure}
-Name, lastname and index \\hfill Variant:""" + variant + """
-
-Please mark the correct answer for the questions below.
-The correct answer should be marked
-by blurring the pattern on the right side of the corresponding letter.
-If you want to skip the question, blur the pattern on the right side
-of the question mark.\\\\
+Imię, nazwisko i nr indeksu \\hfill Wariant:""" + variant + """\\\\
+{\small Proszę zaznaczyć właściwą odpowiedź zamazując kod graficzny umieszczony NA PRAWO od wybranej odpowiedzi.
+Jeśli na jakieś pytanie nie chcecie Państwo odpowiadać, zamażcie kod umieszczony na prawo od znaku zapytania.
+Proszę o przemyślane zaznaczanie odpowiedzi, ponieważ nie jest możliwa zmiana wyboru. 
+Proszę nie modyfikować kodu graficznego umieszczonego w prawym górnym rogu arkusza - jest on niezbędny do sprawej oceny pracy.\\\\
+Punktacja: pytania z czterema odpowiedziami -- dobra odpowiedź +1,5 punktu, błędna odpowiedź -0,5 punktu; 
+pytania z trzema odpowiedziami -- dobra odpowiedź +1 punkt, błędna odpowiedź -0,5 punktu.}
+\\\\
 ~\\\\
 """
 quests = yaml.load(open(sys.argv[1],"r"),Loader=yaml.Loader)
