@@ -55,7 +55,7 @@ for i in range(0,len(dm_read)):
       if test_key is not None:
          print ("Found duplicate key!")
          exit(1)
-      ct = msgpack.unpackb(dt)      
+      ct = msgpack.unpackb(dt)['k']      
       ht=h.sha256(passw.encode("utf8"))
       pt=osy.aes_cbc_pkcs7_decrypt(ht.digest(),ct[1],ct[0])
       test_key = msgpack.unpackb(zlib.decompress(pt), strict_map_key = False)
