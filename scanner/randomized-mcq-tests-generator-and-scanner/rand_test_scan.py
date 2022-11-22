@@ -23,7 +23,7 @@ import zlib
 import hashlib as h
 import oscrypto.symmetric as osy
 import msgpack
-passw="test"
+passw=open("test.pass","r").read().strip()
 test_key = None
 file_name="scanned_test.png"
 # Code below should not be changed unless you know what 
