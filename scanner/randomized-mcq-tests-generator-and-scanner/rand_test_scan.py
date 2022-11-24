@@ -31,16 +31,17 @@ file_name=sys.argv[1]
 # Code below should not be changed unless you know what 
 # are you doing
 from pylibdmtx.pylibdmtx import decode
-from PIL import Image
+import cv2
 # Read the scanned test
-img = Image.open(file_name)
-if img.mode != 'RGB':
-   img = img.convert('RGB')
+image = cv2.imread(file_name)
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+ret,img = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
 # The timeout value (and other options) below may need adjustment
 # If you know any better way how to reasonable control
 # precision of the dmtx decoding, please let me know
 dm_read=decode(img,\
-    min_edge=40, max_edge=600, deviation=20, corrections=10, \
+    min_edge=40, max_edge=600, shrink=2, deviation=20, corrections=10, \
     timeout=10000)
 print (dm_read)
 # Now we iterate through the detected codes dictionary and created the 
@@ -64,15 +65,15 @@ for i in range(0,len(dm_read)):
          exit(1)
       r=dm_read[i].rect
       # We need to introduce certain margin when exporting the rectangle with the code
-      margin = 10
-      b=(r.left-margin,img.size[1]-r.top-r.height-margin,r.left+r.width+margin,img.size[1]-r.top+margin)
-      #b=(r.top,r.left,r.top+r.height,r.left+r.width)
-      ic=img.crop(b)
-      ic.save("code.png")
-      os.system("dmtxread code.png > code.bin")
+      margin = 50
+      ic=img[img.shape[0]-r.top-r.height-margin:img.shape[0]-r.top+margin,r.left-margin:r.left+r.width+margin]
+      cv2.imwrite("code.png",ic)
+      os.system("dmtxread -S 2 code.png > code.bin")
       with open("code.bin","rb") as cb:
          dt = cb.read()
-      ct = msgpack.unpackb(dt)['k']      
+      ed = msgpack.unpackb(dt)
+      ct = ed['k']
+      variant = ed['v'] 
       ht=h.sha256(passw.encode("utf8"))
       pt=osy.aes_cbc_pkcs7_decrypt(ht.digest(),ct[1],ct[0])
       test_key = msgpack.unpackb(zlib.decompress(pt), strict_map_key = False)
@@ -108,6 +109,7 @@ for j in answers:
       print("The question "+str(key)+" has more then 1 answers checked")
       print("The test has been filled incorrectly")
       #exit(2)
+      answers2[key]="!"
    else:
       answers2[key]=answers[j][1]
 # Now we have all answers in a dictionary indexed with question numbers
@@ -122,6 +124,7 @@ for i in range(1,num_questions+1):
 # Evaluate the answers
 # In this demo version we just print them out
 for i in range(1,num_questions+1):
+   if i in answers2:
    print(str(i)+":"+answers2[i])
 
 
