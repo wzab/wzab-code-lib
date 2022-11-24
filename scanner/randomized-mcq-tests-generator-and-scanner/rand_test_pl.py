@@ -109,7 +109,7 @@ for q in rqs:
 import zlib
 import hashlib as h
 import oscrypto.symmetric as osy
-ht=h.sha256("test".encode("utf8"))
+ht=h.sha256(passw.encode("utf8"))
 ct=osy.aes_cbc_pkcs7_encrypt(ht.digest(),zlib.compress(msgpack.packb(qkey)),None)
 with open("qkey.bin","wb") as fq:
    fq.write(msgpack.packb({"v":variant,"k":ct}))

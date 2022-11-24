@@ -23,9 +23,11 @@ import zlib
 import hashlib as h
 import oscrypto.symmetric as osy
 import msgpack
+import sys
+import os
 passw=open("test.pass","r").read().strip()
 test_key = None
-file_name="scanned_test.png"
+file_name=sys.argv[1]
 # Code below should not be changed unless you know what 
 # are you doing
 from pylibdmtx.pylibdmtx import decode
@@ -38,7 +40,7 @@ if img.mode != 'RGB':
 # If you know any better way how to reasonable control
 # precision of the dmtx decoding, please let me know
 dm_read=decode(img,\
-    min_edge=40, max_edge=600, deviation=20,\
+    min_edge=40, max_edge=600, deviation=20, corrections=10, \
     timeout=10000)
 print (dm_read)
 # Now we iterate through the detected codes dictionary and created the 
@@ -51,10 +53,22 @@ for i in range(0,len(dm_read)):
     if len(dt) < 10: # Arbitrary limit!
       code=dt.decode('Ascii')
       to_del.append(code)
-    else: # This should be a testkey
+    else: # This should be a testkey 
+      # Unfortunately, due to a bug (?) in pydmtx library
+      # ( https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1024731 )
+      # we can't directly use the decoded contents. Instead we have 
+      # to extract the rectangle to a separate key and decode it
+      # with dmtxread utility.
       if test_key is not None:
          print ("Found duplicate key!")
          exit(1)
+      r=dm_read[i].rect
+      b=(r.left,r.top,r.left+r.width,r.top+r.height)
+      ic=img.crop(b)
+      ic.save("code.png")
+      os.system("dmtxread code.png > code.bin")
+      with open("code.bin","rb") as cb:
+         data = cb.read()
       ct = msgpack.unpackb(dt)['k']      
       ht=h.sha256(passw.encode("utf8"))
       pt=osy.aes_cbc_pkcs7_decrypt(ht.digest(),ct[1],ct[0])

@@ -32,7 +32,7 @@
 # This software uses the libdmtx library with Python wrapper
 # You can find it at http://libdmtx.sourceforge.net/
 # Options (in fact they should be read from command line)
-
+passw=open("test.pass","r").read().strip()
 from pylibdmtx.pylibdmtx import encode as dmtx_encode
 from PIL import Image, ImageFont, ImageDraw
 import yaml
@@ -66,6 +66,7 @@ by blurring the pattern on the right side of the corresponding letter.
 If you want to skip the question, blur the pattern on the right side
 of the question mark.\\\\
 ~\\\\
+\\\\
 """
 quests = yaml.load(open(sys.argv[1],"r"),Loader=yaml.Loader)
 rqs = quests
@@ -99,13 +100,13 @@ for q in rqs:
      qans.append((chr(ac), a[0]))
      txt += chr(ac)+")~"+a[2:]+"\n"
      ac += 1
+   txt += ".\n"  
    qkey[qnum] = qans
 # To encrypt key we need some extra packages
 import zlib
 import hashlib as h
 import oscrypto.symmetric as osy
-passw="test"
-ht=h.sha256("test".encode("utf8"))
+ht=h.sha256(passw.encode("utf8"))
 ct=osy.aes_cbc_pkcs7_encrypt(ht.digest(),zlib.compress(msgpack.packb(qkey)),None)
 with open("qkey.bin","wb") as fq:
    fq.write(msgpack.packb({"v":variant,"k":ct}))
