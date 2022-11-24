@@ -63,12 +63,15 @@ for i in range(0,len(dm_read)):
          print ("Found duplicate key!")
          exit(1)
       r=dm_read[i].rect
-      b=(r.left,r.top,r.left+r.width,r.top+r.height)
+      # We need to introduce certain margin when exporting the rectangle with the code
+      margin = 10
+      b=(r.left-margin,img.size[1]-r.top-r.height-margin,r.left+r.width+margin,img.size[1]-r.top+margin)
+      #b=(r.top,r.left,r.top+r.height,r.left+r.width)
       ic=img.crop(b)
       ic.save("code.png")
       os.system("dmtxread code.png > code.bin")
       with open("code.bin","rb") as cb:
-         data = cb.read()
+         dt = cb.read()
       ct = msgpack.unpackb(dt)['k']      
       ht=h.sha256(passw.encode("utf8"))
       pt=osy.aes_cbc_pkcs7_decrypt(ht.digest(),ct[1],ct[0])
