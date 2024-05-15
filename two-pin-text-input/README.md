@@ -198,7 +198,7 @@ I'll send a link to the microcontroller implementation as soon as it is ready.
 After each change of the pin state, we initialize the timer, set for the expected settling time.
 If that timer expires, we read the current value od the pin. If it differs from the previously reported one, we generate an event.
 
-```
+```python
 print("Hello, ESP32!")
 import machine as m
 p1=m.Pin(32,m.Pin.IN, m.Pin.PULL_UP)
