@@ -63,7 +63,7 @@ Then, the selected group is split into two equal subgroups, and the first and la
 
 Below is the sample code showing the proposed procedure:
 
-```
+```python
 #!/usr/bin/python
 # The demonstration code for two-key character selection.
 # Written by Wojciech M. Zabołotny (wzab01@gmail.com)
@@ -122,7 +122,7 @@ The above procedure does not use E2f1 event, which may be used to leave the whol
 ## Example implementation
 I don't have an implementation for microcontroller yet. A simple demo function with Python running on a PC and using numbers instead of the above events is shown below:
 
-```
+```python
 #!/usr/bin/python
 # The demonstration code for two-key character selection.
 # Written by Wojciech M. Zabołotny (wzab01@gmail.com)
