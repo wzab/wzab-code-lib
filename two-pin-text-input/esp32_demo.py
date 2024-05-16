@@ -16,7 +16,9 @@ class eventgen:
     P21 = 5
     P120 = 6
     P210 = 7
-    ERROR = 8
+    P212 = 8
+    P121 = 9
+    WAIT_IDLE = 10
     # Constructor connecting pins and queue
     def __init__(self,pin1,pin2,queue):
         # Functions for getting the pin state (possibly inverted)
@@ -60,8 +62,13 @@ class eventgen:
                     self.reps = self.reps + 1
                     self.st = self.P120
                 elif self.p1() == 0:
-                    print("Unsupported")
-                    self.st = self.ERROR
+                    self.st = self.P121
+            elif self.st == self.P121:
+                if self.p1() == 0 and self.p2() == 1:
+                    return
+                if self.p2() == 0:
+                    self.q.append(("E1f2",int(self.reps)))
+                    self.st = self.IDLE
             elif self.st == self.P120:
                 if self.p1() == 1 and self.p2() == 0:
                     return
@@ -77,8 +84,13 @@ class eventgen:
                     self.reps = self.reps + 1
                     self.st = self.P210
                 elif self.p2() == 0:
-                    print("Unsupported")
-                    self.st = self.ERROR
+                    self.st = self.P212
+            elif self.st == self.P212:
+                if self.p1() == 1 and self.p2() == 0:
+                    return
+                if self.p1() == 0:
+                    self.q.append(("E2f1",int(self.reps)))
+                    self.st = self.IDLE
             elif self.st == self.P210:
                 if self.p1() == 0 and self.p2() == 1:
                     return
@@ -87,7 +99,7 @@ class eventgen:
                     self.st = self.IDLE
                 elif self.p1() == 1:
                     self.st = self.P21
-            elif self.st == self.ERROR:
+            elif self.st == self.WAIT_IDLE:
                 if self.p1() == 0 and self.p2() == 0:
                     self.st = self.IDLE
                 else:
