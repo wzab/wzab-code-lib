@@ -225,7 +225,7 @@ specs=list("\"\'{}[]!?@#$%^&*()-+=/\\,.<>")
 groups=[uc_letters, lc_letters, digits, specs]
 
 te = textentry(groups)
-sync_ev = asyncio.Event()
+sync_ev = asyncio.ThreadSafeFlag()
 
 ev = eventgen(Pin1,Pin2,q, sync_ev)    
 
@@ -234,14 +234,17 @@ def p_cb(p):
 Pin1.irq(trigger=m.Pin.IRQ_RISING | m.Pin.IRQ_FALLING, handler=p_cb)    
 Pin2.irq(trigger=m.Pin.IRQ_RISING | m.Pin.IRQ_FALLING, handler=p_cb)
 
-te.disp()
-while True:
-    sync_ev.wait()
-    sync_ev.clear()
+async def main():
+    te.disp()
     while True:
-        try:
-            w = q.popleft()
-            te.process(w)
-            te.disp()
-        except Exception as e:
-            break
+        await sync_ev.wait()
+        sync_ev.clear()
+        while True:
+            try:
+                w = q.popleft()
+                te.process(w)
+                te.disp()
+            except Exception as e:
+                break
+
+asyncio.run(main())
