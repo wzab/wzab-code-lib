@@ -1,7 +1,8 @@
-# This is a public domain code demonstrating the two-key text input method 
-# described in https://www.reddit.com/r/embedded/comments/1csplu9/twokey_procedure_for_entering_text_in_an_embedded/
+# This is a public domain (CC0 1.0 license) code by Wojciech M. Zabołotny (wzab01@gmail.com)
+# demonstrating the two-key text input method described in
+# https://www.reddit.com/r/embedded/comments/1csplu9/twokey_procedure_for_entering_text_in_an_embedded/
 # 
-# The buttons are assigned to keys "Q" qnd "W"
+# The buttons are assigned to keys "Q" qnd "W" (you must click on the image of the system before)
 # Selection of group is done with E2i1
 # Selection of subgroup is done with E1 and E2
 # Space is entered with E1i2*1
