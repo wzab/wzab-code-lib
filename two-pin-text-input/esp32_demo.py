@@ -1,10 +1,45 @@
 # This is a public domain code demonstrating the two-key text input method 
 # described in https://www.reddit.com/r/embedded/comments/1csplu9/twokey_procedure_for_entering_text_in_an_embedded/
-# Please note, that it is still suboptimal.
 # 
+# The buttons are assigned to keys "Q" qnd "W"
+# Selection of group is done with E2i1
+# Selection of subgroup is done with E1 and E2
+# Space is entered with E1i2*1
+# Removal of the last character is done with E1i2*2
+# Clearing the whole text is done with E1i2*3
+# Sending the text is done with E1f2
+#
+# The events are defined as below:
+#
+# Event   Wavevorfm
+# E1      In1: __/‾‾\__
+#         In2: ________
+#
+# E2      In1: ________
+#         In2: __/‾‾\__
+#        
+# E1i2    In1: ___/‾‾\___
+#         In2: _/‾‾‾‾‾‾\_
+#
+# E1i2*N  In1: ___/‾‾\__[N pulses]_/‾‾\___
+#         In2: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\_
+#
+# E2i1    In1: _/‾‾‾‾‾‾\_
+#         In2: ___/‾‾\___
+#
+# E2i1*N  In1: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\_
+#         In2: ___/‾‾\__[N pulses]_/‾‾\___
+#
+# E1f2    In1: _/‾‾‾‾\_____
+#         In2: ____/‾‾‾‾\__
+#
+# E2f1    In1: ____/‾‾‾‾\__
+#         In2: _/‾‾‾‾\_____
+
 print("Text inputs with buttons")
 import machine as m
 import collections
+import asyncio
 
 # Define a class implementing states for a state machine
 class eventgen:
@@ -20,13 +55,19 @@ class eventgen:
     P121 = 9
     WAIT_IDLE = 10
     # Constructor connecting pins and queue
-    def __init__(self,pin1,pin2,queue):
+    def __init__(self,pin1,pin2,queue,sync):
         # Functions for getting the pin state (possibly inverted)
         self.p1 = lambda : 1-pin1.value()
         self.p2 = lambda : 1-pin2.value()
-        self.q = queue
+        self.sync = sync
+        self.queue = queue
         self.reps = 0
         self.st = self.IDLE
+    
+    def send(self,msg):
+        self.queue.append(msg)
+        self.sync.set()
+
     def pin_change(self,t): # The function called when the buttons are settled
         while True:
             p1 = self.p1()
@@ -44,7 +85,7 @@ class eventgen:
                 if p1 == 1 and p2 == 0:
                     return
                 elif p1 == 0:
-                    self.q.append(("E1",1))
+                    self.send(("E1",1))
                     self.st = self.IDLE
                 elif p2 == 1:
                     self.st = self.P12                
@@ -52,7 +93,7 @@ class eventgen:
                 if p1 == 0 and p2 == 1:
                     return
                 elif p2 == 0:
-                    self.q.append(("E2",1))
+                    self.send(("E2",1))
                     self.st = self.IDLE
                 elif p1 == 1:
                     self.st = self.P21
@@ -68,13 +109,13 @@ class eventgen:
                 if p1 == 0 and p2 == 1:
                     return
                 if p2 == 0:
-                    self.q.append(("E1f2",int(self.reps)))
+                    self.send(("E1f2",int(self.reps)))
                     self.st = self.IDLE
             elif self.st == self.P120:
                 if p1 == 1 and p2 == 0:
                     return
                 elif p1 == 0:
-                    self.q.append(("E12",int(self.reps)))
+                    self.send(("E2i1",int(self.reps)))
                     self.st = self.IDLE
                 elif p2 == 1:
                     self.st = self.P12
@@ -90,13 +131,13 @@ class eventgen:
                 if p1 == 1 and p2 == 0:
                     return
                 if p1 == 0:
-                    self.q.append(("E2f1",int(self.reps)))
+                    self.send(("E2f1",int(self.reps)))
                     self.st = self.IDLE
             elif self.st == self.P210:
                 if p1 == 0 and p2 == 1:
                     return
                 elif p2 == 0:
-                    self.q.append(("E21",int(self.reps)))
+                    self.send(("E1i2",int(self.reps)))
                     self.st = self.IDLE
                 elif p1 == 1:
                     self.st = self.P21
@@ -116,6 +157,7 @@ class textentry:
         self.end = len(self.gr)
         self.split = 0
         self.txt = ""
+
     def disp(self):
         self.split = (self.start + self.end) // 2
         if self.start == self.split:
@@ -141,10 +183,10 @@ class textentry:
             self.end = self.split
         elif event[0] == "E2":
             self.start = self.split
-        elif event[0] == "E21":
+        elif event[0] == "E1i2":
             if event[1] == 1:
                 self.txt += " "
-            elif event[2] == 2:
+            elif event[1] == 2:
                 self.txt = self.txt[:-1]
             else:
                 self.txt = ""
@@ -153,7 +195,7 @@ class textentry:
             self.txt = ""
             self.start = 0
             self.end = len(self.gr)
-        elif event[0] == "E12":
+        elif event[0] == "E2i1":
             self.grnr = (self.grnr + 1) % len(self.groups)
             self.gr = self.groups[self.grnr]
             self.start = 0
@@ -163,7 +205,7 @@ class textentry:
 
 
 q = collections.deque((),32)
-settling_time = 20 # Set to 1000 to see how does it work
+settling_time = 10 # Set to 1000 to see how does it work
 Pin1=m.Pin(32,m.Pin.IN, m.Pin.PULL_UP)
 Pin2=m.Pin(33,m.Pin.IN, m.Pin.PULL_UP)
 t1 = m.Timer(1)
@@ -182,8 +224,10 @@ specs=list("\"\'{}[]!?@#$%^&*()-+=/\\,.<>")
 groups=[uc_letters, lc_letters, digits, specs]
 
 te = textentry(groups)
+sync_ev = asyncio.Event()
 
-ev = eventgen(Pin1,Pin2,q)    
+ev = eventgen(Pin1,Pin2,q, sync_ev)    
+
 def p_cb(p):
     t1.init(mode=m.Timer.ONE_SHOT, period=settling_time, callback=ev.pin_change)
 Pin1.irq(trigger=m.Pin.IRQ_RISING | m.Pin.IRQ_FALLING, handler=p_cb)    
@@ -191,9 +235,12 @@ Pin2.irq(trigger=m.Pin.IRQ_RISING | m.Pin.IRQ_FALLING, handler=p_cb)
 
 te.disp()
 while True:
-    try:
-        w = q.popleft()
-        te.process(w)
-        te.disp()
-    except Exception as e:
-        pass
+    sync_ev.wait()
+    sync_ev.clear()
+    while True:
+        try:
+            w = q.popleft()
+            te.process(w)
+            te.disp()
+        except Exception as e:
+            break
