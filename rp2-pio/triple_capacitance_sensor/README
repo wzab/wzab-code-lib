@@ -1,0 +1,9 @@
+That code was published on reddit: https://www.reddit.com/r/raspberrypipico/comments/1eh1y6n/piobased_touch_capacitance_sensor_with_three/
+And is available on Wokwi: https://wokwi.com/projects/404968247542865921
+
+PIO-based touch capacitance sensor with three inputs 
+
+I needed to prepare a capacitance (in fact touch) sensor with three inputs implemented in Raspberry Pi Pico.
+It uses PIO to generate a rectangular waveform on one "driver" pin, and measures the delay of propagation between that pin and three input "sensor" pins. The "sensor" pins should be connected to the "driver" with high resistance (~1M) resistors. The capacitance of the touch sensor increases the delay. Therefore, touching the sensor may be detected based on the measured delay value.
+The code is available together with the demonstration in the Wokwi simulator. Because Wokwi can't simulate the RC circuit, the delay has been simulated with the shift register.
+The implementation is done in MicroPython, but may be easily ported to C, Rust or another language. 
