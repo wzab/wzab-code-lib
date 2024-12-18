@@ -51,18 +51,6 @@ s1.SetFilled(False)
 s1.SetLayer(pcbnew.Edge_Cuts)
 bd.Add(s1)
 
-# Created a hole for the shaft
-module = pcbnew.FOOTPRINT(bd)
-pad = pcbnew.PAD(module)
-pad.SetSize(pcbnew.VECTOR2I(c2k(5),c2k(5)))
-pad.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
-pad.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
-pad.SetLayerSet(pad.PTHMask())
-pad.SetDrillSize(pcbnew.VECTOR2I(c2k(5),c2k(5)))
-pad.SetName('')
-module.Add(pad)
-bd.Add(module)
-
 # Create the rotor plates    
 for lay in [pcbnew.F_Cu, pcbnew.B_Cu]:
     for sy in [-1,1]:
