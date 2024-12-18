@@ -5,7 +5,7 @@ bd_w = 100 #Board width in mm
 pad_r = 50 #Inner pad diameter in mm
 pad_r2 = 15 #Inner pad diameter in mm
 pad_ang = 80 # Pad angle in degrees
-
+cof = 10 # Assembly cut-off size
 import pcbnew
 import math
 bd = pcbnew.CreateEmptyBoard()
@@ -17,6 +17,11 @@ def a2k(angle):
 def c2k(coord):
     return int(1000000*coord)
 
+def arc_point(r,ang):
+    x = c2k(r*math.sin(a2k(ang)))
+    y = c2k(r*math.cos(a2k(ang)))
+    return (x,y)
+    
 #Add the board boundary
 cntr = pcbnew.VECTOR2I(0,0)
 
@@ -24,6 +29,16 @@ c1 = pcbnew.SHAPE_LINE_CHAIN()
 c1.Append(-c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
 c1.Append(-c2k((bd_w+1)/2),c2k((bd_h+1)/2))
 c1.Append(c2k((bd_w+1)/2),c2k((bd_h+1)/2))
+#Create the assembly cut-off
+c1.Append(c2k((bd_w+1)/2),c2k(cof/2))
+c1.Append(c2k(0),c2k(cof/2))
+npts = 40
+for i in range(0,npts+1):
+    (x,y) = arc_point(cof/2,180/npts*i)            
+    c1.Append(-x,y)
+c1.Append(c2k(0),-c2k((cof)/2))
+c1.Append(c2k((bd_w+1)/2),c2k(-(cof)/2))
+#
 c1.Append(c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
 c1.Append(-c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
 c1.SetClosed(True)
@@ -48,12 +63,7 @@ pad.SetName('')
 module.Add(pad)
 bd.Add(module)
 
-def arc_point(r,ang):
-    x = c2k(r*math.sin(a2k(ang)))
-    y = c2k(r*math.cos(a2k(ang)))
-    return (x,y)
-
-# Create the stator plates    
+# Create the rotor plates    
 for lay in [pcbnew.F_Cu, pcbnew.B_Cu]:
     for sy in [-1,1]:
         c1 = pcbnew.SHAPE_LINE_CHAIN()
