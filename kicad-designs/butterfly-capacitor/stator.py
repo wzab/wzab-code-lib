@@ -26,21 +26,21 @@ def arc_point(r,ang):
 cntr = pcbnew.VECTOR2I(0,0)
 
 c1 = pcbnew.SHAPE_LINE_CHAIN()
-c1.Append(-c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
-c1.Append(-c2k((bd_w+1)/2),c2k((bd_h+1)/2))
-c1.Append(c2k((bd_w+1)/2),c2k((bd_h+1)/2))
+c1.Append(-c2k((bd_w)/2),-c2k((bd_h)/2))
+c1.Append(-c2k((bd_w)/2),c2k((bd_h)/2))
+c1.Append(c2k((bd_w)/2),c2k((bd_h)/2))
 #Create the assembly cut-off
-c1.Append(c2k((bd_w+1)/2),c2k(cof/2))
+c1.Append(c2k((bd_w)/2),c2k(cof/2))
 c1.Append(c2k(0),c2k(cof/2))
 npts = 40
 for i in range(0,npts+1):
     (x,y) = arc_point(cof/2,180/npts*i)            
     c1.Append(-x,y)
 c1.Append(c2k(0),-c2k((cof)/2))
-c1.Append(c2k((bd_w+1)/2),c2k(-(cof)/2))
+c1.Append(c2k((bd_w)/2),c2k(-(cof)/2))
 #
-c1.Append(c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
-c1.Append(-c2k((bd_w+1)/2),-c2k((bd_h+1)/2))
+c1.Append(c2k((bd_w)/2),-c2k((bd_h)/2))
+c1.Append(-c2k((bd_w)/2),-c2k((bd_h)/2))
 c1.SetClosed(True)
 s0 = pcbnew.SHAPE_POLY_SET()
 s0.AddOutline(c1)            
