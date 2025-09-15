@@ -27,7 +27,7 @@ class stepper:
     def move(self, npos):
       npos = npos % self.nsteps
       shift = (npos - self.pos) % self.nsteps
-      # If we turn shaft counter clockwise, then we first go back by "back" steps
+      # If we turn shaft counterclockwise, then we first go back by "back" steps
       bpos = (npos - self.back) % self.nsteps
       if shift > (self.nsteps // 2):
           while True:
