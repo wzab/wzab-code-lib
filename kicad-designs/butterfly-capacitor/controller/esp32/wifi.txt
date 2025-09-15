@@ -1,0 +1,5 @@
+ssid_of_your_network
+password_to_your_network
+
+
+

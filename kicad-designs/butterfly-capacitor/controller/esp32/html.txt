@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Butterfly capacitor controller</title>
+<style>
+body { font-family:sans-serif; text-align:center; padding:12px; }
+canvas { border-radius:50%; border:1px solid #bbb; display:block; margin:0 auto; touch-action:none; }
+input[type=number] { width:80px; font-size:16px; text-align:center; }
+button { margin:2px; padding:6px 10px; font-size:14px; }
+.row { margin-top:10px; display:flex; justify-content:center; flex-wrap:wrap; gap:4px; }
+</style>
+</head>
+<body>
+<h2>Butterfly capacitor controller</h2>
+<canvas id="dial" width="220" height="220"></canvas>
+<div class="row">
+  <label for="val">Value</label>
+  <input id="val" type="number" min="0" max="4095" value="0">
+</div>
+<div class="row">
+  <button onclick="step(-1000)">-1000</button>
+  <button onclick="step(-100)">-100</button>
+  <button onclick="step(-10)">-10</button>
+  <button onclick="step(-1)">-1</button>
+  <button onclick="step(1)">+1</button>
+  <button onclick="step(10)">+10</button>
+  <button onclick="step(100)">+100</button>
+  <button onclick="step(1000)">+1000</button>
+</div>
+
+<script>
+const MOD = 4096;
+let value = 0;
+const dial = document.getElementById('dial');
+const valInput = document.getElementById('val');
+const ctx = dial.getContext('2d');
+
+let ws = new WebSocket(`ws://${location.host}/ws`);
+ws.onopen = () => console.log("WebSocket connected");
+ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if(data.value !== undefined){
+        value = data.value;
+        valInput.value = value;
+        drawDial();
+    }
+};
+
+function drawDial(){
+    const w=dial.width,h=dial.height;
+    ctx.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2,r=Math.min(w,h)/2-10;
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.strokeStyle="#bbb"; ctx.lineWidth=3; ctx.stroke();
+    for(let t=0;t<8;t++){
+        const ang=t/8*Math.PI*2-Math.PI/2;
+        const x1=cx+(r-10)*Math.cos(ang);
+        const y1=cy+(r-10)*Math.sin(ang);
+        const x2=cx+r*Math.cos(ang);
+        const y2=cy+r*Math.sin(ang);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+        ctx.strokeStyle="#999"; ctx.lineWidth=2; ctx.stroke();
+    }
+    const angle=value/(MOD-1)*Math.PI*2-Math.PI/2;
+    const nx=cx+(r-18)*Math.cos(angle);
+    const ny=cy+(r-18)*Math.sin(angle);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(nx,ny);
+    ctx.strokeStyle="#d33"; ctx.lineWidth=4; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fillStyle="#333"; ctx.fill();
+}
+
+function sendValue(v){ if(ws.readyState===1) ws.send(JSON.stringify({value:v})); }
+
+function setValue(v){
+    value = ((v%MOD)+MOD)%MOD;
+    valInput.value = value;
+    drawDial();
+    throttledSend(value);
+}
+
+document.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=> setValue(Number(valInput.value)+Number(b.innerText)));
+});
+valInput.addEventListener('change', ()=>setValue(Number(valInput.value)));
+
+let dragging=false;
+function getAngle(e){
+    const rect=dial.getBoundingClientRect();
+    const cx=rect.left+rect.width/2;
+    const cy=rect.top+rect.height/2;
+    const x=e.clientX??e.touches[0].clientX;
+    const y=e.clientY??e.touches[0].clientY;
+    let ang=Math.atan2(y-cy,x-cx);
+    ang=(ang+Math.PI/2+Math.PI*2)%(Math.PI*2); return ang;
+}
+function updateFromEvent(e){ setValue(Math.round(getAngle(e)/(Math.PI*2)*(MOD-1))); }
+dial.addEventListener('mousedown',e=>{dragging=true; updateFromEvent(e);});
+window.addEventListener('mouseup',()=>dragging=false);
+dial.addEventListener('mousemove',e=>{if(dragging) updateFromEvent(e);});
+dial.addEventListener('touchstart',e=>{e.preventDefault(); dragging=true; updateFromEvent(e);});
+window.addEventListener('touchend',()=>dragging=false);
+dial.addEventListener('touchmove',e=>{if(dragging){e.preventDefault(); updateFromEvent(e);}});
+
+// Throttle sending
+let lastSent = 0;
+function throttledSend(v){
+    const now = Date.now();
+    if(now-lastSent>20){
+        sendValue(v);
+        lastSent=now;
+    }
+}
+
+</script>
+</body>
+</html>
