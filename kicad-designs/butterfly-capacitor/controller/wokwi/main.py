@@ -24,9 +24,6 @@ import microdot_websocket
 sys.modules["microdot.websocket"] = microdot_websocket
 from microdot.websocket import with_websocket
 
-import stepper
-motor=stepper.stepper()
-
 # ---------------- Wi-Fi config ----------------
 #WIFI_SSID = "Wokwi-GUEST"
 #WIFI_PASS = ""
@@ -88,7 +85,6 @@ async def broadcast_loop():
     last_sent = None
     while True:
         if last_sent != current_value:
-            motor.move(current_value)
             msg_bytes = ujson.dumps({"value": current_value}).encode("utf-8")
             for ws in ws_clients[:]:
                 try:
