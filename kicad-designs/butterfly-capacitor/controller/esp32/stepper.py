@@ -8,10 +8,10 @@ import machine as m
 import time
 class stepper:
     def __init__(self, dur = 2, p1 = 13, p2 = 12, p3 = 14, p4 = 27, pos = 0, nsteps = 4096, back = 100):
-      self.f1=m.Pin(13,m.Pin.OUT)
-      self.f2=m.Pin(12,m.Pin.OUT)
-      self.f3=m.Pin(14,m.Pin.OUT)
-      self.f4=m.Pin(27,m.Pin.OUT)
+      self.f1=m.Pin(p1,m.Pin.OUT)
+      self.f2=m.Pin(p2,m.Pin.OUT)
+      self.f3=m.Pin(p3,m.Pin.OUT)
+      self.f4=m.Pin(p4,m.Pin.OUT)
       self.pos = pos
       self.dur = dur
       self.nsteps = nsteps

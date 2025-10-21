@@ -25,7 +25,7 @@ sys.modules["microdot.websocket"] = microdot_websocket
 from microdot.websocket import with_websocket
 
 import stepper
-motor=stepper.stepper()
+motor=stepper.stepper(p1=5,p2=6,p3=7,p4=8)
 
 # ---------------- Wi-Fi config ----------------
 #WIFI_SSID = "Wokwi-GUEST"
