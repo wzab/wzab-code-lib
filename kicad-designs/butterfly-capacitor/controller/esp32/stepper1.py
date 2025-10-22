@@ -17,11 +17,11 @@ class stepper:
       self.nsteps = nsteps
       self.back = back
       self.ctrl = ((self.f1,), 
-          (self.f1,self.f3),
-          (self.f3,), 
+          (self.f1,self.f2),
+          (self.f2,), 
           (self.f2,self.f3),
-          (self.f2,),
-          (self.f2,self.f4),
+          (self.f3,),
+          (self.f3,self.f4),
           (self.f4,),
           (self.f4,self.f1))
     def move(self, npos):
@@ -50,10 +50,10 @@ class stepper:
     def gen_pulse(self):
       phase = self.pos % 8
       for pin in self.ctrl[phase]:
-          pin.value(0)
+          pin.value(1)
       time.sleep_ms(self.dur)
       for pin in (self.f1, self.f2, self.f3, self.f4):
-          pin.value(1)
+          pin.value(0)
 
 #Works with duration 2 ms and above
 #Doesn't work with duration 1 ms

@@ -1,5 +1,5 @@
 # main.py -- ESP32 MicroPython + Microdot + asyncio WebSocket
-# Circular dial GUI (0..4095), buttons, text input.
+# Circular dial GUI (0..12059), buttons, text input.
 # Sends value to server via WebSocket in real-time and prints to serial (DAC_VALUE)
 # This code is a result of a long discussion of Wojciech Zabolotny (wzab01@gmail.com, SP5DAA)
 # with ChatGPT, available at https://chatgpt.com/share/68c7fdbd-6d40-800c-8983-f73a21130e31
@@ -14,6 +14,8 @@ import network
 import time
 import uasyncio as asyncio
 
+NSTEPS=12060
+
 import microdot
 from microdot import Microdot, Response
 # Work around Wokwi flat FS limitations
@@ -25,7 +27,7 @@ sys.modules["microdot.websocket"] = microdot_websocket
 from microdot.websocket import with_websocket
 
 import stepper
-motor=stepper.stepper(p1=5,p2=6,p3=7,p4=8)
+motor=stepper.stepper(p1=5,p2=6,p3=7,p4=8,nsteps=12060)
 
 # ---------------- Wi-Fi config ----------------
 #WIFI_SSID = "Wokwi-GUEST"
@@ -75,7 +77,7 @@ async def ws_route(request, ws):
                 msg = bytes(msg).decode("utf-8")
             data = ujson.loads(msg)
             v = int(data.get("value", 0))
-            current_value = max(0, min(4095, v))
+            current_value = max(0, min(NSTEPS-1, v))
     finally:
         if ws in ws_clients:
             ws_clients.remove(ws)

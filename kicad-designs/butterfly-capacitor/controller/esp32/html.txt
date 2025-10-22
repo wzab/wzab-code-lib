@@ -16,7 +16,7 @@ button { margin:2px; padding:6px 10px; font-size:14px; }
 <canvas id="dial" width="220" height="220"></canvas>
 <div class="row">
   <label for="val">Value</label>
-  <input id="val" type="number" min="0" max="4095" value="0">
+  <input id="val" type="number" min="0" max="12059" value="0">
 </div>
 <div class="row">
   <button onclick="step(-1000)">-1000</button>
@@ -30,7 +30,7 @@ button { margin:2px; padding:6px 10px; font-size:14px; }
 </div>
 
 <script>
-const MOD = 4096;
+const MOD = 12059;
 let value = 0;
 const dial = document.getElementById('dial');
 const valInput = document.getElementById('val');
