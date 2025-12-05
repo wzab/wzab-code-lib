@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # The script below was created by Wojciech (Voytek) Zabolotny SP5DAA
 # on 2025.12.05 with significant help of ChatGPT.
 # It is published as PUBLIC DOMAIN
