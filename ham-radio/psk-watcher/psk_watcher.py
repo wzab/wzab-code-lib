@@ -5,7 +5,7 @@
 # or under the Creative Commons CC0 Public Domain Dedication
 # No warranty of any kind is given.
 # You use it on your own risk
-
+import os
 import time
 import json
 import paho.mqtt.client as mqtt
@@ -92,6 +92,8 @@ def on_message(client, userdata, msg):
               print("WAZ  " + report)
               fout_waz.write(report+"\n")
               fout_waz.flush()
+              voice_msg = f"New zone: {rx_call} in band {band}"
+              os.system("echo \""+ voice_msg + "\" | RHVoice-test")
           # Check DXCC
           if str(info['adif']) not in dxcc_done:
               print("DXCC " + report)
@@ -111,6 +113,7 @@ def on_disconnect(client, userdata, reasonCode, properties=None):
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
     print("📩 Confirmed subscription, QoS:", granted_qos)
 
+os.system("echo \"Starting monitoring\" | RHVoice-test")
 # --------------------
 # MQTT v5 client
 # --------------------
@@ -131,6 +134,7 @@ print(f"🌐 Listening for FT8/FT4 for grid {MY_GRID} on broker {BROKER}…")
 # --------------------
 # Main loop (working in the background, receiving via callbacks)
 # --------------------
+
 try:
     while True:
         time.sleep(1)  # "sleep" instead of "pass" to reduce CPU usage
