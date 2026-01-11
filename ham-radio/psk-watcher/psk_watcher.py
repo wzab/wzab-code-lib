@@ -92,7 +92,7 @@ def on_message(client, userdata, msg):
               print("WAZ  " + report)
               fout_waz.write(report+"\n")
               fout_waz.flush()
-              voice_msg = f"New zone: {rx_call} in band {band}"
+              voice_msg = f"New zone: {tx_call} in band {band}"
               os.system("echo \""+ voice_msg + "\" | RHVoice-test")
           # Check DXCC
           if str(info['adif']) not in dxcc_done:
