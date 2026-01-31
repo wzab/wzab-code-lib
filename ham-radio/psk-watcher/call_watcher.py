@@ -27,10 +27,6 @@ WATCH_MODES = {"FT8", "FT4"}
 lookup = LookupLib(lookuptype="countryfile")  # use country-files
 ci = Callinfo(lookup)
 
-qsos,headers=af.read_from_file("lotwreport.adi")
-dxccs={}
-cqzs={}
-
 # Subscribe MQTT only for my grid and for selected modes
 TOPICS = [
     f"pskr/filter/v2/+/FT8/+/+/+/{MY_GRID}/#",
