@@ -96,7 +96,7 @@ async def jabber_send(text):
        try:
            xmpp = Notifier(jcreds.jid, jcreds.password, jcreds.target, text)
            xmpp.loop = asyncio.get_running_loop()
-           maybe = xmpp.connect(("jabbers.one", 5222))
+           maybe = xmpp.connect()
            ok = await maybe if asyncio.iscoroutine(maybe) else maybe
            if ok is False:
                raise RuntimeError("I couldn't connect to the Jabber server (False returned).")
