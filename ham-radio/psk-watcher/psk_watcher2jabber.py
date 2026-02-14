@@ -15,6 +15,7 @@ import adif_io as af
 #Needed for Jabber notofications
 import asyncio
 import logging
+#logging.basicConfig(level=logging.DEBUG)
 import slixmpp
 #Python file with Jabber credentials
 import jcreds
@@ -32,7 +33,7 @@ PORT = 1883               # MQTT without TLS, TLS = 1884
 CLIENT_ID = "FT8_FT4_Watcher"
 WATCH_MODES = {"FT8", "FT4"}
 SKIPPED_BANDS = {"60M",} # Bands not counted for DXCC awards
-VOICE_ACTIVE = True
+VOICE_ACTIVE = False
 JABBER_ACTIVE = True
 
 lookup = LookupLib(lookuptype="countryfile")  # use country-files
@@ -92,11 +93,12 @@ class Notifier(slixmpp.ClientXMPP):
 
 async def jabber_send(text):
     if JABBER_ACTIVE:
-       try:   
+       try:
            xmpp = Notifier(jcreds.jid, jcreds.password, jcreds.target, text)
            xmpp.loop = asyncio.get_running_loop()
-           ok = xmpp.connect()
-           if not ok:
+           maybe = xmpp.connect()
+           ok = await maybe if asyncio.iscoroutine(maybe) else maybe
+           if ok is False:
                raise RuntimeError("I couldn't connect to the Jabber server (False returned).")
            await xmpp.disconnected
        except Exception as e:
