@@ -9,7 +9,7 @@
 import csv
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
@@ -84,18 +84,26 @@ def to_csv_datetime(value) -> str:
 
 
 def normalize_for_key(value) -> str:
+    """
+    Create a canonical key for comparing recurrence-related timestamps.
+
+    Rules:
+    - timezone-aware datetimes are normalized to UTC
+    - naive datetimes are treated as floating local times
+    - date values are kept as dates
+
+    Prefixes prevent collisions between DATE, floating DATETIME, and UTC DATETIME.
+    """
     if value is None:
         return ""
 
-    # Keep timezone-aware datetimes timezone-aware in the key.
-    # This avoids breaking RRULE/RECURRENCE-ID matching.
     if isinstance(value, datetime):
         if value.tzinfo is None:
-            return value.strftime("%Y-%m-%d %H:%M:%S")
-        return value.isoformat()
+            return "FLOAT:" + value.strftime("%Y-%m-%d %H:%M:%S")
+        return "UTC:" + value.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     if isinstance(value, date):
-        return value.strftime("%Y-%m-%d")
+        return "DATE:" + value.strftime("%Y-%m-%d")
 
     return str(value)
 
@@ -106,19 +114,6 @@ def parse_sequence(component) -> int:
         return int(raw)
     except ValueError:
         return 0
-
-
-def exdate_set(component) -> set[str]:
-    result = set()
-    exdate = component.get("EXDATE")
-    if exdate is None:
-        return result
-
-    entries = exdate if isinstance(exdate, list) else [exdate]
-    for entry in entries:
-        for dt_value in getattr(entry, "dts", []):
-            result.add(normalize_for_key(dt_value.dt))
-    return result
 
 
 def build_range_start(value: str) -> datetime:
@@ -151,13 +146,37 @@ def in_requested_range(value, range_start: datetime, range_end: datetime) -> boo
     return False
 
 
+def extract_multi_dt_values(component, key: str) -> list:
+    """
+    Extract values from EXDATE/RDATE.
+
+    icalendar may return:
+    - a single property object with .dts
+    - a list of such objects
+    """
+    prop = component.get(key)
+    if prop is None:
+        return []
+
+    items = prop if isinstance(prop, list) else [prop]
+    values = []
+    for item in items:
+        for dt_value in getattr(item, "dts", []):
+            values.append(dt_value.dt)
+    return values
+
+
+def exdate_set(component) -> set[str]:
+    return {normalize_for_key(value) for value in extract_multi_dt_values(component, "EXDATE")}
+
+
+def rdate_values(component) -> list:
+    return extract_multi_dt_values(component, "RDATE")
+
+
 def expand_master_event(component, range_start: datetime, range_end: datetime) -> list[EventRow]:
     dtstart = get_dt(component, "DTSTART")
     if dtstart is None:
-        return []
-
-    rrule = component.get("RRULE")
-    if rrule is None:
         return []
 
     dtend = get_dt(component, "DTEND")
@@ -169,21 +188,34 @@ def expand_master_event(component, range_start: datetime, range_end: datetime) -
     elif dtend is not None:
         event_duration = dtend - dtstart
 
-    # Important:
-    # pass the original DTSTART to rrulestr(), without converting timezone
-    rule = rrulestr(rrule.to_ical().decode("utf-8"), dtstart=dtstart)
     excluded = exdate_set(component)
+    occurrences_by_key: dict[str, object] = {}
 
-    rows = []
-    for occurrence in rule:
+    # Expand RRULE instances.
+    rrule = component.get("RRULE")
+    if rrule is not None:
+        rule = rrulestr(rrule.to_ical().decode("utf-8"), dtstart=dtstart)
+        for occurrence in rule:
+            if not in_requested_range(occurrence, range_start, range_end):
+                continue
+            key = normalize_for_key(occurrence)
+            if key in excluded:
+                continue
+            occurrences_by_key[key] = occurrence
+
+    # Add explicit RDATE instances.
+    for occurrence in rdate_values(component):
         if not in_requested_range(occurrence, range_start, range_end):
-            # Skip values outside the output window
             continue
-
-        occurrence_key = normalize_for_key(occurrence)
-        if occurrence_key in excluded:
+        key = normalize_for_key(occurrence)
+        if key in excluded:
             continue
+        occurrences_by_key[key] = occurrence
 
+    # If a master event has neither RRULE nor RDATE, nothing is expanded here.
+    rows = []
+    for key in sorted(occurrences_by_key.keys()):
+        occurrence = occurrences_by_key[key]
         rows.append(
             EventRow(
                 summary=get_text(component, "SUMMARY", ""),
@@ -215,25 +247,26 @@ def build_rows(calendar: Calendar, range_start: datetime, range_end: datetime) -
             continue
 
         has_rrule = component.get("RRULE") is not None
+        has_rdate = component.get("RDATE") is not None
         has_recurrence_id = component.get("RECURRENCE-ID") is not None
 
         if has_recurrence_id:
             overrides.append(component)
-        elif has_rrule:
+        elif has_rrule or has_rdate:
             masters.append(component)
         else:
             standalone.append(component)
 
     rows_by_key: dict[tuple[str, str], tuple[EventRow, int]] = {}
 
-    # Expand recurring master events
+    # Expand recurring master events (RRULE and/or RDATE).
     for component in masters:
         sequence = parse_sequence(component)
         for row in expand_master_event(component, range_start, range_end):
             key = (row.uid, normalize_for_key(row.original_start))
             rows_by_key[key] = (row, sequence)
 
-    # Apply RECURRENCE-ID overrides
+    # Apply RECURRENCE-ID overrides.
     for component in overrides:
         uid = get_text(component, "UID", "")
         recurrence_id = get_dt(component, "RECURRENCE-ID")
@@ -262,7 +295,7 @@ def build_rows(calendar: Calendar, range_start: datetime, range_end: datetime) -
         key = (uid, normalize_for_key(recurrence_id))
         rows_by_key[key] = (row, parse_sequence(component))
 
-    # Add standalone events
+    # Add standalone events.
     for component in standalone:
         start = get_dt(component, "DTSTART")
         if start is None:
