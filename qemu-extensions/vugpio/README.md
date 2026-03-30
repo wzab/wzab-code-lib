@@ -25,9 +25,12 @@ Basic usage:
 
 With explicit socket paths:
 
+
     python3 vugpio.py \
       --socket-path /tmp/gpio.sock \
       --control-socket /tmp/gpio-gui.sock
+
+    python3 gui3.py --control-socket /tmp/gpio-gui.sock
 
 Logging options:
 
