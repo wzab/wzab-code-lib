@@ -169,8 +169,23 @@ MAX_MSG_SIZE = 0x1000
 
 
 # ---------------------------------------------------------------------------
-# Simple GPIO model
+# Reusable GPIO model
 # ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class GpioLineConfig:
+    """Declarative configuration of one GPIO line.
+
+    This keeps board layout description outside of the protocol/backend logic,
+    so different frontends can define their own line sets without modifying the
+    transport implementation.
+    """
+
+    name: str
+    direction: int = VIRTIO_GPIO_DIRECTION_NONE
+    initial_value: int = 0
+    irq_type: int = VIRTIO_GPIO_IRQ_TYPE_NONE
+
 
 @dataclass
 class GpioLine:
@@ -180,16 +195,60 @@ class GpioLine:
     irq_type: int = VIRTIO_GPIO_IRQ_TYPE_NONE
 
 
+class CallbackDispatcher:
+    """Fan-out helper for backend output notifications."""
+
+    def __init__(self) -> None:
+        self._callbacks: List[Callable[[int, int], None]] = []
+        self._lock = threading.RLock()
+
+    def add(self, callback: Optional[Callable[[int, int], None]]) -> None:
+        if callback is None:
+            return
+        with self._lock:
+            self._callbacks.append(callback)
+
+    def remove(self, callback: Callable[[int, int], None]) -> None:
+        with self._lock:
+            self._callbacks = [cb for cb in self._callbacks if cb != callback]
+
+    def __call__(self, gpio: int, value: int) -> None:
+        with self._lock:
+            callbacks = list(self._callbacks)
+        for cb in callbacks:
+            cb(gpio, value)
+
+
 class GpioModel:
-    def __init__(self, ngpio: int, output_callback: Optional[Callable[[int, int], None]] = None):
-        self.ngpio = ngpio
-        self.lines: List[GpioLine] = [GpioLine(name=f"gpio{i}") for i in range(ngpio)]
+    def __init__(self, lines: Sequence[GpioLine], output_callback: Optional[Callable[[int, int], None]] = None):
+        if not lines:
+            raise ValueError("GpioModel requires at least one line")
+        self.lines: List[GpioLine] = list(lines)
+        self.ngpio = len(self.lines)
         self.lock = threading.RLock()
-        self.output_callback = output_callback
+        self.output_dispatcher = CallbackDispatcher()
+        self.output_dispatcher.add(output_callback)
         self.event_queue_buffers: List[Tuple[int, int]] = []  # compatibility placeholder
 
-        for i in range(24, ngpio):
-            self.lines[i].direction = VIRTIO_GPIO_DIRECTION_OUT
+    @classmethod
+    def from_config(
+        cls,
+        configs: Sequence[GpioLineConfig],
+        output_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> "GpioModel":
+        lines = [
+            GpioLine(
+                name=cfg.name,
+                direction=cfg.direction,
+                value=1 if cfg.initial_value else 0,
+                irq_type=cfg.irq_type,
+            )
+            for cfg in configs
+        ]
+        return cls(lines, output_callback=output_callback)
+
+    def add_output_callback(self, callback: Callable[[int, int], None]) -> None:
+        self.output_dispatcher.add(callback)
 
     def names_blob(self) -> bytes:
         with self.lock:
@@ -220,9 +279,7 @@ class GpioModel:
     def set_value_from_guest(self, gpio: int, value: int) -> None:
         with self.lock:
             self.lines[gpio].value = 1 if value else 0
-            cb = self.output_callback
-        if cb is not None:
-            cb(gpio, 1 if value else 0)
+        self.output_dispatcher(gpio, 1 if value else 0)
 
     def set_irq_type(self, gpio: int, irq_type: int) -> None:
         with self.lock:
@@ -240,20 +297,36 @@ class GpioModel:
         return VIRTIO_GPIO_CFG.pack(self.ngpio, self.names_size())
 
 
-def build_gui3_model(output_callback: Optional[Callable[[int, int], None]] = None) -> GpioModel:
-    model = GpioModel(32, output_callback=output_callback)
-    for i in range(0, 12):
-        model.lines[i].name = f"sw{i}"
-        model.lines[i].direction = VIRTIO_GPIO_DIRECTION_IN
-    for i in range(12, 24):
-        model.lines[i].name = f"btn{i}"
-        model.lines[i].direction = VIRTIO_GPIO_DIRECTION_IN
-        model.lines[i].value = 1
-    for i in range(24, 32):
-        model.lines[i].name = f"led{i}"
-        model.lines[i].direction = VIRTIO_GPIO_DIRECTION_OUT
-    return model
+def build_model_from_config(
+    configs: Sequence[GpioLineConfig],
+    output_callback: Optional[Callable[[int, int], None]] = None,
+) -> GpioModel:
+    return GpioModel.from_config(configs, output_callback=output_callback)
 
+
+def default_demo_line_configs() -> List[GpioLineConfig]:
+    configs: List[GpioLineConfig] = []
+    configs.extend(
+        GpioLineConfig(name=f"sw{i}", direction=VIRTIO_GPIO_DIRECTION_IN)
+        for i in range(0, 12)
+    )
+    configs.extend(
+        GpioLineConfig(name=f"btn{i}", direction=VIRTIO_GPIO_DIRECTION_IN, initial_value=1)
+        for i in range(12, 24)
+    )
+    configs.extend(
+        GpioLineConfig(name=f"led{i}", direction=VIRTIO_GPIO_DIRECTION_OUT)
+        for i in range(24, 32)
+    )
+    return configs
+
+
+def build_demo_model(output_callback: Optional[Callable[[int, int], None]] = None) -> GpioModel:
+    return build_model_from_config(default_demo_line_configs(), output_callback=output_callback)
+
+
+# Backward-compatible alias used by existing local scripts.
+build_gui3_model = build_demo_model
 
 # ---------------------------------------------------------------------------
 # Memory and queue state
@@ -518,10 +591,12 @@ class QueueAccessor:
 
 
 # ---------------------------------------------------------------------------
-# GUI control socket
+# JSON control socket
 # ---------------------------------------------------------------------------
 
-class GuiControlServer:
+class GpioJsonServer:
+    """Simple JSON line-oriented control channel for external frontends."""
+
     def __init__(self, socket_path: str, model: GpioModel, inject_callback: Optional[Callable[[int, int], None]] = None) -> None:
         self.socket_path = socket_path
         self.model = model
@@ -541,7 +616,7 @@ class GuiControlServer:
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.bind(self.socket_path)
         self.sock.listen(8)
-        self.thread = threading.Thread(target=self._run, name="gui-control", daemon=True)
+        self.thread = threading.Thread(target=self._run, name="gpio-control", daemon=True)
         self.thread.start()
         _trace(f"{_ts()} vugpio: gui-control listening on {self.socket_path}", flush=True)
 
@@ -598,6 +673,14 @@ class GuiControlServer:
     def _handle_client(self, conn: socket.socket) -> None:
         try:
             conn.sendall((json.dumps({"event": "hello", "ngpio": self.model.ngpio}) + "\n").encode())
+            for idx, line in enumerate(self.model.lines):
+                conn.sendall((json.dumps({
+                    "event": "line",
+                    "gpio": idx,
+                    "name": line.name,
+                    "direction": line.direction,
+                    "value": line.value,
+                }) + "\n").encode())
             f = conn.makefile("r", encoding="utf-8", newline="\n")
             for line in f:
                 try:
@@ -622,6 +705,64 @@ class GuiControlServer:
             except OSError:
                 pass
 
+
+class GpioControlClient:
+    """Frontend-side JSON control client.
+
+    GUI code can use this client without importing backend internals.
+    """
+
+    def __init__(self, socket_path: str, on_gpio: Optional[Callable[[int, int], None]] = None) -> None:
+        self.socket_path = socket_path
+        self.on_gpio = on_gpio
+        self.sock: Optional[socket.socket] = None
+        self.thread: Optional[threading.Thread] = None
+        self.stop_event = threading.Event()
+        self.ngpio: Optional[int] = None
+        self.line_info: Dict[int, Dict[str, object]] = {}
+
+    def start(self) -> None:
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self.socket_path)
+        self.thread = threading.Thread(target=self._reader, name="gpio-control-client", daemon=True)
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+            self.sock = None
+
+    def set_gpio(self, gpio: int, value: int) -> None:
+        if self.sock is None:
+            raise RuntimeError("control client is not connected")
+        msg = {"cmd": "set", "gpio": int(gpio), "value": int(value)}
+        self.sock.sendall((json.dumps(msg) + "\n").encode())
+
+    def _reader(self) -> None:
+        assert self.sock is not None
+        f = self.sock.makefile("r", encoding="utf-8", newline="\n")
+        for line in f:
+            if self.stop_event.is_set():
+                break
+            try:
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            event = msg.get("event")
+            if event == "hello":
+                self.ngpio = int(msg["ngpio"])
+            elif event == "line":
+                self.line_info[int(msg["gpio"])] = msg
+            elif event == "gpio" and self.on_gpio is not None:
+                self.on_gpio(int(msg["gpio"]), 1 if int(msg["value"]) else 0)
+
+
+# Backward-compatible alias.
+GuiControlServer = GpioJsonServer
 
 # ---------------------------------------------------------------------------
 # Backend
@@ -651,7 +792,7 @@ class VhostUserGpioBackend:
         self.started_event = threading.Event()
         self.sel = selectors.DefaultSelector()
         self.lock = threading.RLock()
-        self.gui_server: Optional[GuiControlServer] = None
+        self.gui_server: Optional[GpioJsonServer] = None
         self.armed_event_buffers: List[ArmedEventBuffer] = []
 
 
@@ -692,7 +833,7 @@ class VhostUserGpioBackend:
         self._reset_state("stop")
 
     def enable_gui_control(self, control_socket: str) -> None:
-        self.gui_server = GuiControlServer(control_socket, self.model, inject_callback=self.inject_gpio)
+        self.gui_server = GpioJsonServer(control_socket, self.model, inject_callback=self.inject_gpio)
         self.gui_server.start()
 
     # -- reset/debug --------------------------------------------------------
@@ -1416,7 +1557,7 @@ def main() -> None:
     def output_cb(gpio: int, value: int) -> None:
         _trace(f"{_ts()} vugpio: output gpio={gpio} value={value}", flush=True)
 
-    model = build_gui3_model(output_callback=output_cb)
+    model = build_demo_model(output_callback=output_cb)
     backend = VhostUserGpioBackend(args.socket_path, model, verbose=args.verbose)
     backend.start()
     if args.control_socket:
