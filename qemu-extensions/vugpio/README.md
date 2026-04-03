@@ -1,5 +1,7 @@
 # vugpio (Virtio GPIO Userspace Backend)
 
+<img width="1164" height="421" alt="image" src="https://github.com/user-attachments/assets/a301d40a-2c4f-4c48-aff9-f1d40b402cf6" />
+
 A userspace implementation of a Virtio GPIO backend compatible with Linux guests using the gpio-virtio driver.
 
 ## Features
